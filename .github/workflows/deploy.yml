@@ -10,11 +10,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy to Docker Swarm
+        env:
+          MUSER: ${{ secrets.MUSER }}
+          MHOST: ${{ secrets.MHOST }}
+          CI_PROJECT_NAME: ${{ github.event.repository.name }}
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.MUSER }}@${{ secrets.MHOST }} << EOF
-            cd "${{ secrets.CI_PROJECT_NAME }}"
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $MUSER@$MHOST << 'EOF'
+            cd "$CI_PROJECT_NAME"
 
-            docker service update --with-registry-auth --image "${{ secrets.CI_PROJECT_NAME }}:${GITHUB_REF##*/}" "app_${{ secrets.CI_PROJECT_NAME }}"
+            docker service update --with-registry-auth --image "$CI_PROJECT_NAME:${{ github.ref_name }}" "app_$CI_PROJECT_NAME"
+
+            if [ $? -eq 0 ]; then
+              echo "✅ Deployment successful"
+            else
+              echo "❌ Deployment failed"
+              exit 1
+            fi
 
             docker buildx prune -f
             docker service ls

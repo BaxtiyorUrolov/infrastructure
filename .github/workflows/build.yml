@@ -9,19 +9,29 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Build docker image remotely
+      - name: Build Docker image remotely
+        env:
+          MUSER: ${{ secrets.MUSER }}
+          MHOST: ${{ secrets.MHOST }}
+          CI_PROJECT_NAME: ${{ github.event.repository.name }}
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.MUSER }}@${{ secrets.MHOST }} << EOF
-            if [ -d "${{ secrets.CI_PROJECT_NAME }}" ]; then
-              cd "${{ secrets.CI_PROJECT_NAME }}"
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $MUSER@$MHOST << 'EOF'
+            if [ -d "$CI_PROJECT_NAME" ]; then
+              cd "$CI_PROJECT_NAME"
               git fetch --all
-              git checkout "${GITHUB_REF##*/}"
+              git checkout "${{ github.ref_name }}"
               git pull
             else
-              git clone https://github.com/${{ github.repository }}.git "${{ secrets.CI_PROJECT_NAME }}"
-              cd "${{ secrets.CI_PROJECT_NAME }}"
-              git checkout "${GITHUB_REF##*/}"
+              git clone https://github.com/${{ github.repository }}.git "$CI_PROJECT_NAME"
+              cd "$CI_PROJECT_NAME"
+              git checkout "${{ github.ref_name }}"
             fi
 
-            docker build --rm -t ${{ secrets.CI_PROJECT_NAME }}:${GITHUB_REF##*/} -t ${{ secrets.CI_PROJECT_NAME }}:latest .
+            docker build --rm -t $CI_PROJECT_NAME:${{ github.ref_name }} -t $CI_PROJECT_NAME:latest .
+            if [ $? -eq 0 ]; then
+              echo "✅ Docker image built successfully"
+            else
+              echo "❌ Docker build failed"
+              exit 1
+            fi
           EOF

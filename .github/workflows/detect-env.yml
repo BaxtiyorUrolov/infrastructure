@@ -5,21 +5,25 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
 
+env:
+  DOCKER_IMAGE_URL: "${{ github.repository_owner }}/${{ github.event.repository.name }}"
+
 jobs:
-  detect:
+  detect-env:
     runs-on: ubuntu-latest
     outputs:
       BUILD_TAG: ${{ steps.setvars.outputs.BUILD_TAG }}
       PREFIX: ${{ steps.setvars.outputs.PREFIX }}
       SECRET_PATH: ${{ steps.setvars.outputs.SECRET_PATH }}
     steps:
-      - name: Set variables
+      - name: Set environment variables
         id: setvars
         run: |
-          VERSION="${GITHUB_REF#refs/tags/}"
+          VERSION="${{ github.ref_name }}"
           echo "SECRET_PATH=cicd/rc" >> $GITHUB_ENV
           echo "PREFIX=rc-$VERSION" >> $GITHUB_ENV
           echo "BUILD_TAG=rc-$VERSION-${{ github.run_number }}" >> $GITHUB_ENV
           echo "::set-output name=SECRET_PATH::cicd/rc"
           echo "::set-output name=PREFIX::rc-$VERSION"
           echo "::set-output name=BUILD_TAG::rc-$VERSION-${{ github.run_number }}"
+        shell: bash
