@@ -1,0 +1,27 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build docker image remotely
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.MUSER }}@${{ secrets.MHOST }} << EOF
+            if [ -d "${{ secrets.CI_PROJECT_NAME }}" ]; then
+              cd "${{ secrets.CI_PROJECT_NAME }}"
+              git fetch --all
+              git checkout "${GITHUB_REF##*/}"
+              git pull
+            else
+              git clone https://github.com/${{ github.repository }}.git "${{ secrets.CI_PROJECT_NAME }}"
+              cd "${{ secrets.CI_PROJECT_NAME }}"
+              git checkout "${GITHUB_REF##*/}"
+            fi
+
+            docker build --rm -t ${{ secrets.CI_PROJECT_NAME }}:${GITHUB_REF##*/} -t ${{ secrets.CI_PROJECT_NAME }}:latest .
+          EOF

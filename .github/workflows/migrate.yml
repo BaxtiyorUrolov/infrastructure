@@ -1,0 +1,30 @@
+name: Migrate
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run database migrations remotely
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.MUSER }}@${{ secrets.MHOST }} << EOF
+            cd "${{ secrets.CI_PROJECT_NAME }}"
+
+            echo "Running migrations with golang-migrate..."
+
+            migrate \
+              -path=./migrations \
+              -database="postgres://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ secrets.POSTGRES_HOST }}:${{ secrets.POSTGRES_PORT }}/${{ secrets.POSTGRES_DB }}?sslmode=disable" \
+              up
+
+            if [ \$? -eq 0 ]; then
+              echo "✅ Migrations successful"
+            else
+              echo "❌ Migrations failed"
+              exit 1
+            fi
+          EOF

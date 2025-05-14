@@ -1,0 +1,19 @@
+Detect ENV:
+  stage: .pre
+  script:
+    - echo "DOCKER_IMAGE_URL=${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}" >> pipeline.env
+    - |
+      if [[ -n "${CI_COMMIT_TAG}" && "${CI_COMMIT_TAG}" =~ ^v[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}.*$ ]]; then
+          echo "SECRET_PATH=cicd/rc" >> pipeline.env
+          VERSION="${CI_COMMIT_TAG}"
+          echo "PREFIX=rc-$VERSION" >> pipeline.env
+          echo "BUILD_TAG=rc-$VERSION-$CI_PIPELINE_IID" >> pipeline.env
+          exit 0
+      fi
+    - exit 1
+  artifacts:
+    reports:
+      dotenv: pipeline.env
+  tags:
+    - build
+
